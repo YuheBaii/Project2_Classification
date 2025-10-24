@@ -1,0 +1,9 @@
+seed: 42
+device: "cpu"   # or "cuda"
+num_workers: 4
+batch_size: 64
+epochs: 30
+lr: 1e-2
+amp: true
+output_root: "experiments"
+save_best_metric: "val_acc"

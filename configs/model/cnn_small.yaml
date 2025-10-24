@@ -1,0 +1,3 @@
+model:
+  name: "simple_cnn_binary"
+  loss_fn: "ce"

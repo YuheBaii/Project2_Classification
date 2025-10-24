@@ -1,0 +1,9 @@
+task:
+  name: "dogs_vs_cats"
+  data_root: "/Users/yukun/workspace/ie6483-proj2-skeleton/datasets"
+  train_dir: "train"
+  val_dir: "val"
+  test_dir: "test"
+  img_size: 224
+  num_classes: 2
+  class_names: ["cat", "dog"]

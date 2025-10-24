@@ -1,0 +1,4 @@
+model:
+  name: "resnet18"
+  pretrained: true
+  freeze_backbone: false
