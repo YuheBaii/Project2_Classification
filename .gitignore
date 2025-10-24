@@ -13,5 +13,8 @@ dist/
 *.pth
 *.log
 runs/
+
+# Experiments and datasets (too large for GitHub)
 experiments/
+datasets/
 data/
