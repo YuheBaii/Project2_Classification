@@ -15,6 +15,10 @@ dist/
 runs/
 
 # Experiments and datasets (too large for GitHub)
-experiments/
+experiments/*
+!experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/
+experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.ckpt
+experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.pt
+experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.pth
 datasets/
 data/
