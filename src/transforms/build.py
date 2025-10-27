@@ -1,11 +1,10 @@
 from torchvision import transforms as T
 from torch import nn, optim
 from src.datamodules.dogs_vs_cats import DogsVsCatsDataModule
-from src.datamodules.cifar10 import build_cifar10
-from src.models.resnet import build_resnet18
 from src.models.cnn import SimpleCNNBinary
 from src.losses.focal_loss import FocalLoss
-
+from src.models.cnn_bn import BNCnn
+from src.models.VGG import VGG
 
 def _op(op):
     t = op["type"]
@@ -24,10 +23,20 @@ def _op(op):
     raise ValueError(f"Unknown transform: {t}")
 
 def build_transforms(cfg_aug):
+    """
+    Build data transforms based on configuration.
+    If cfg_aug is None or empty, returns None for both train and val transforms.
+    """
+    if cfg_aug is None:
+        print("Warning: No augmentation config provided, using None transforms")
+        return None, None
+    
     train_ops = cfg_aug.get("train", [])
     val_ops = cfg_aug.get("val", [])
+    
     train_tf = T.Compose([_op(x) for x in train_ops]) if train_ops else None
     val_tf = T.Compose([_op(x) for x in val_ops]) if val_ops else None
+    
     return train_tf, val_tf
 
 
@@ -74,40 +83,57 @@ def build_trainer(cfg):
     )
 def build_model(cfg, num_classes):
     m = cfg["model"]["name"]
+    img_size = cfg["task"].get("img_size", 224)
+    loss_fn = build_loss(cfg)
+    loss_name = cfg["model"]["loss_fn"]
+    print(f"Building model: {m} with loss: {loss_name}")
+    if loss_name == "bce" and num_classes != 1:
+        num_classes = 1  # For BCE, use single output neuron
     if m == "simple_cnn_binary":
-        # Build loss function based on config and pass it to the model
-        img_size = cfg["task"].get("img_size", 224)
-        loss_fn = build_loss(cfg)
-        loss_name = cfg["model"]["loss_fn"]
-        cnn_num_classes = 2 if loss_name == "ce" else 1
-        
-        print(f"SimpleCNN img_size: {img_size}")
-        print(f"SimpleCNN num_classes: {cnn_num_classes} (loss: {loss_name})")
-        
-        return SimpleCNNBinary(loss_fn=loss_fn, input_size=(img_size, img_size), num_classes=cnn_num_classes)
-    if m == "resnet18":
-        return build_resnet18(
-            num_classes=num_classes,
-            pretrained=cfg["model"].get("pretrained", True),
-            freeze_backbone=cfg["model"].get("freeze_backbone", False),
+        return SimpleCNNBinary(loss_fn=loss_fn, input_size=(img_size, img_size), num_classes=num_classes)
+    
+    elif m == "cnn_bn":
+        return BNCnn(
+            loss_fn=loss_fn, 
+            input_size=(img_size, img_size), 
+            num_classes=num_classes, 
+            dropout_p=cfg["model"]["dropout_p"]
         )
-    if m == "vgg":
-        from src.models.VGG import VGG
-        # 架构默认为 A，VGG-11
+    
+    elif m == "vgg":
+        # default to A，VGG-11
         arch_name = cfg["model"].get("arch_name", "A")
         vgg_cfgs = cfg["model"].get("vgg_cfgs", {})
         arch = vgg_cfgs.get(arch_name, [[1, 64], [1, 128], [2, 256], [2, 512], [2, 512]])
-        img_size = cfg["task"].get("img_size", 224)
-        loss_fn = build_loss(cfg)
-
-        loss_name = cfg["model"]["loss_fn"]
-        vgg_num_classes = 2 if loss_name == "ce" else 1
         
         print(f"VGG arch ({arch_name}):", arch)
         print(f"VGG img_size: {img_size}")
-        print(f"VGG num_classes: {vgg_num_classes} (loss: {loss_name})")
         
-        return VGG(arch=arch, loss_fn=loss_fn, img_size=img_size, num_classes=vgg_num_classes)
+        return VGG(arch=arch, loss_fn=loss_fn, img_size=img_size, num_classes=num_classes)
+    
+    elif m == "resnet18":
+        from src.models.resnet import ResNet18
+        arch = cfg["model"].get("arch", ((2, 64), (2, 128), (2, 256), (2, 512)))
+        
+        print(f"ResNet18 arch:", arch)
+        print(f"ResNet18 img_size: {img_size}")
+        
+        return ResNet18(arch=arch, num_classes=num_classes, loss_fn=loss_fn)
+    
+    elif m == "resnext50":
+        from src.models.resnext import ResNeXt
+        # ResNeXt-50 32x4d: layers=(3,4,6,3), groups=32, width_per_group=4
+        layers = cfg["model"].get("layers", (3,4,6,3))
+        groups = cfg["model"].get("groups", 32)
+        width_per_group = cfg["model"].get("width_per_group", 4)
+        
+        print(f"ResNeXt-50 layers: {layers}, groups: {groups}, width_per_group: {width_per_group}")
+        print(f"ResNeXt-50 img_size: {img_size}")
+        
+        return ResNeXt(layers=layers, groups=groups, width_per_group=width_per_group,
+                      num_classes=num_classes, loss_fn=loss_fn)
+
+    
     raise ValueError(f"Unknown model: {m}")
 
 

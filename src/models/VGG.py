@@ -66,11 +66,10 @@ class VGG(ModuleBase):
         # Use provided criterion, otherwise use the loss function set during initialization
         criterion = criterion if criterion is not None else self.loss_fn
         print(f"DEBUG: Using criterion: {criterion}")
-        
-        # 根据输出维度判断是BCE还是CE
-        if y_hat.shape[1] == 1:  # BCE: 输出是 (batch, 1)
+
+        if y_hat.shape[1] == 1:  
             y = y.float().view(-1, 1)
-        else:  # CE: 输出是 (batch, num_classes), 标签是类别索引
+        else:  
             y = y.long()
         
         return criterion(y_hat, y)
@@ -79,10 +78,10 @@ class VGG(ModuleBase):
     def compute_metric(self, y_hat: torch.Tensor, y: torch.Tensor):
         with torch.no_grad():
             # 根据输出维度判断预测方式
-            if y_hat.shape[1] == 1:  # BCE: 使用sigmoid + 阈值
+            if y_hat.shape[1] == 1:  # BCE: sigmoid 
                 probs = torch.sigmoid(y_hat)
                 preds = (probs >= 0.5).long().view(-1)
-            else:  # CE: 使用argmax
+            else:  # CE: argmax
                 preds = torch.argmax(y_hat, dim=1)
             
             acc = (preds == y.view(-1).long()).float().mean().item()

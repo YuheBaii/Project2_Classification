@@ -1,0 +1,10 @@
+# No data augmentation - minimal transforms only
+aug:
+  train:
+    - type: "Resize"
+      size: ${task.img_size}
+    - type: "ToTensor"
+  val:
+    - type: "Resize"
+      size: ${task.img_size}
+    - type: "ToTensor"

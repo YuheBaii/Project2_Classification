@@ -1,0 +1,16 @@
+# Basic augmentation - only resize, normalize, no random transforms
+aug:
+  train:
+    - type: "Resize"
+      size: ${task.img_size}
+    - type: "ToTensor"
+    - type: "Normalize"
+      mean: [0.485, 0.456, 0.406]
+      std:  [0.229, 0.224, 0.225]
+  val:
+    - type: "Resize"
+      size: ${task.img_size}
+    - type: "ToTensor"
+    - type: "Normalize"
+      mean: [0.485, 0.456, 0.406]
+      std:  [0.229, 0.224, 0.225]

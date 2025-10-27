@@ -19,26 +19,6 @@ class _FolderNoLabel(Dataset):
         if self.transform: img = self.transform(img)
         return img, os.path.basename(p)
 
-# def build_dogs_vs_cats(cfg_task, train_tf, val_tf, batch_size, num_workers):
-#     root = cfg_task["data_root"]
-#     train_dir = os.path.join(root, cfg_task.get("train_dir", "train"))
-#     val_dir   = os.path.join(root, cfg_task.get("val_dir", "val"))
-#     test_dir  = os.path.join(root, cfg_task.get("test_dir", "test"))
-
-#     train_ds = ImageFolder(train_dir, transform=train_tf)
-#     val_ds   = ImageFolder(val_dir,   transform=val_tf)
-#     class_names = train_ds.classes
-
-#     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
-#                               num_workers=num_workers, pin_memory=True)
-#     val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False,
-#                               num_workers=num_workers, pin_memory=True)
-
-#     test_files = sorted(glob.glob(os.path.join(test_dir, "*")))
-#     test_ds = _FolderNoLabel(test_files, transform=val_tf)
-#     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False,
-#                              num_workers=num_workers, pin_memory=True)
-#     return train_loader, val_loader, test_loader, class_names
 
 class DogsVsCatsDataModule(DataModuleBase):
     def __init__(
