@@ -1,0 +1,92 @@
+{
+  "amp": true,
+  "aug": {
+    "train": [
+      {
+        "scale": [
+          0.6,
+          1.0
+        ],
+        "size": 224,
+        "type": "RandomResizedCrop"
+      },
+      {
+        "p": 0.5,
+        "type": "RandomHorizontalFlip"
+      },
+      {
+        "type": "ToTensor"
+      },
+      {
+        "mean": [
+          0.485,
+          0.456,
+          0.406
+        ],
+        "std": [
+          0.229,
+          0.224,
+          0.225
+        ],
+        "type": "Normalize"
+      }
+    ],
+    "val": [
+      {
+        "size": 224,
+        "type": "Resize"
+      },
+      {
+        "size": 224,
+        "type": "CenterCrop"
+      },
+      {
+        "type": "ToTensor"
+      },
+      {
+        "mean": [
+          0.485,
+          0.456,
+          0.406
+        ],
+        "std": [
+          0.229,
+          0.224,
+          0.225
+        ],
+        "type": "Normalize"
+      }
+    ]
+  },
+  "batch_size": 64,
+  "device": "cpu",
+  "epochs": 30,
+  "lr": "1e-2",
+  "model": {
+    "dropout_p": 0.4,
+    "loss_fn": "bce",
+    "name": "cnn_bn"
+  },
+  "num_workers": 4,
+  "optim": {
+    "lr": 0.0005,
+    "name": "adamw",
+    "weight_decay": 0.01
+  },
+  "output_root": "experiments",
+  "save_best_metric": "val_acc",
+  "seed": 42,
+  "task": {
+    "class_names": [
+      "cat",
+      "dog"
+    ],
+    "data_root": "/Users/yukun/workspace/proj2-skeleton/datasets",
+    "img_size": 224,
+    "name": "dogs_vs_cats",
+    "num_classes": 2,
+    "test_dir": "test",
+    "train_dir": "train",
+    "val_dir": "val"
+  }
+}
