@@ -1,6 +1,7 @@
 from torchvision import transforms as T
 from torch import nn, optim
 from src.datamodules.dogs_vs_cats import DogsVsCatsDataModule
+from src.datamodules.cifar10 import CIFAR10DataModule
 from src.models.cnn import SimpleCNNBinary
 from src.losses.focal_loss import FocalLoss
 from src.models.cnn_bn import BNCnn
@@ -70,8 +71,18 @@ def build_data(cfg, train_tf=None, val_tf=None):
         dm.setup()
         #return dm.train_dataloader(), dm.val_dataloader(), dm.test_dataloader(), dm.class_names
         return dm,dm.class_names
-    # elif t == "cifar10":
-    #     return build_cifar10(cfg["task"], train_tf, val_tf, bs, nw)
+    elif t == "cifar10":
+        dm = CIFAR10DataModule(
+            data_root=cfg["task"]["data_root"],
+            img_size=cfg["task"].get("img_size", 32),
+            batch_size=bs,
+            num_workers=nw,
+            val_split=cfg["task"].get("val_split", 5000),
+            train_tf=train_tf,
+            val_tf=val_tf,
+        )
+        dm.setup()
+        return dm, dm.class_names
     else:
         raise ValueError(f"Unknown task: {t}")
 

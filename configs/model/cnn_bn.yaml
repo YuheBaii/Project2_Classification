@@ -1,4 +1,4 @@
 model:
   name: "cnn_bn"
-  loss_fn: "bce"
+  loss_fn: "ce"
   dropout_p: 0.4

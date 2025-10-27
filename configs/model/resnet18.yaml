@@ -1,6 +1,6 @@
 model:
   name: "resnet18"
-  loss_fn: "bce"
+  loss_fn: "ce"
   arch: 
     - [2, 64]
     - [2, 128]

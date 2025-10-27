@@ -1,6 +1,6 @@
 model:
   name: "resnext50"
-  loss_fn: "bce"
+  loss_fn: "ce"
   layers: [3, 4, 6, 3]  # ResNeXt-50
   groups: 32
   width_per_group: 4
