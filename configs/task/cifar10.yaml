@@ -3,4 +3,5 @@ task:
   data_root: ./data/cifar10
   img_size: 32
   val_split: 5000  
+  num_classes: 10
   class_names: ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']

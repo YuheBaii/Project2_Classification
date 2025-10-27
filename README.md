@@ -99,7 +99,7 @@ Notes:
 - The trainer constructs the model from the provided config and saves only the model state dict and class names in the checkpoint.
 - **Important**: Use `loss_fn: bce` for binary classification (Dogs vs Cats), and `loss_fn: ce` for multi-class (CIFAR-10).
 
-Predict (use a completed run folder):
+**Predict (Dogs vs. Cats - use a completed run folder):**
 
 ```bash
 python -m src.inference.predict_folder \
@@ -108,13 +108,28 @@ python -m src.inference.predict_folder \
 
 - This command reads the run's `cfg_effective.json` (so you don't need to repeat `--cfg`), builds the model, loads weights from `checkpoints/best_acc.ckpt`, predicts images in `data/<task>/test/`, and writes `predictions.csv` in the run folder.
 
-Build submission CSV:
+**Build submission CSV (Dogs vs. Cats):**
 
 ```bash
 python -m src.inference.build_submission --run experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn
 ```
 
 - This converts `predictions.csv` into `submission.csv` with two columns: `id,label` where `label` is 0 for cat and 1 for dog.
+
+**Evaluate CIFAR-10 test set:**
+
+```bash
+python -m src.engine.evaluator --run experiments/<your_cifar10_run_folder>
+```
+
+Example:
+```bash
+python -m src.engine.evaluator --run experiments/2025-10-27_17-08-44_cifar10_resnet18
+```
+
+- This command evaluates the trained CIFAR-10 model on the official test set (10,000 images)
+- It reports overall test accuracy and per-class accuracy for all 10 classes
+- The evaluator automatically loads the model config and checkpoint from the run folder
 
 ## Augmentation options
 
