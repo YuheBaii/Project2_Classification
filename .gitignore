@@ -18,11 +18,15 @@ runs/
 experiments/*
 !experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/
 !experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn/
+!experiments/2025-10-27_17-08-44_cifar10_resnet18/
 experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.ckpt
 experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.pt
 experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.pth
 experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn/checkpoints/*.ckpt
 experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn/checkpoints/*.pt
 experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn/checkpoints/*.pth
+experiments/2025-10-27_17-08-44_cifar10_resnet18/checkpoints/*.ckpt
+experiments/2025-10-27_17-08-44_cifar10_resnet18/checkpoints/*.pt
+experiments/2025-10-27_17-08-44_cifar10_resnet18/checkpoints/*.pth
 datasets/
 data/
