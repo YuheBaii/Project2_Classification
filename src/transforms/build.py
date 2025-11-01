@@ -86,11 +86,14 @@ def build_data(cfg, train_tf=None, val_tf=None):
     else:
         raise ValueError(f"Unknown task: {t}")
 
-def build_trainer(cfg):
+def build_trainer(cfg, run_dir=None):
     from src.core.trainer_base import TrainerBase
     return TrainerBase(
         epochs=cfg.get("epochs", 5),
         device=cfg.get("device", "cpu"),
+        patience=cfg.get("early_stopping", {}).get("patience", 5),
+        min_delta=cfg.get("early_stopping", {}).get("min_delta", 0.0),
+        run_dir=run_dir,
     )
 def build_model(cfg, num_classes):
     m = cfg["model"]["name"]
@@ -115,7 +118,10 @@ def build_model(cfg, num_classes):
         # default to A，VGG-11
         arch_name = cfg["model"].get("arch_name", "A")
         vgg_cfgs = cfg["model"].get("vgg_cfgs", {})
-        arch = vgg_cfgs.get(arch_name, [[1, 64], [1, 128], [2, 256], [2, 512], [2, 512]])
+        arch_list = vgg_cfgs.get(arch_name, [[1, 64], [1, 128], [2, 256], [2, 512], [2, 512]])
+        
+        # 将列表转换为元组格式 (VGG模型期望元组的元组)
+        arch = tuple(tuple(block) for block in arch_list)
         
         print(f"VGG arch ({arch_name}):", arch)
         print(f"VGG img_size: {img_size}")

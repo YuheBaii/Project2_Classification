@@ -20,11 +20,6 @@ def _init_weights(m: nn.Module):
         if m.bias is not None:
             nn.init.zeros_(m.bias)
 
-class _Rescale01(nn.Module):
-    """Scale raw [0,255] images to [0,1]."""
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x / 255.0
-
 class Residual(nn.Module):  #@save
     """The Residual block of ResNet models."""
     def __init__(self, num_channels, use_1x1conv=False, strides=1):
@@ -70,8 +65,6 @@ class ResNet18(ModuleBase):
         self.arch = arch
         self.num_classes = num_classes
         
-        # Rescale layer
-        self.rescale = _Rescale01()
         out_features = num_classes if num_classes > 1 else 1
         # Build network
         self.net = nn.Sequential(self.b1())
@@ -93,7 +86,7 @@ class ResNet18(ModuleBase):
         self.apply(_init_weights)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.rescale(x)
+        # x = self.rescale(x)  # 输入已经经过 ToTensor() 和 Normalize() 处理
         return self.net(x)
     
     def compute_loss(self, y_hat: torch.Tensor, y: torch.Tensor, criterion=None) -> torch.Tensor:

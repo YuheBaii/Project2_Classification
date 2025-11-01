@@ -1,7 +1,7 @@
 model:
   name: "vgg"
   loss_fn: "ce"
-  arch_name: "D"  # choose vgg architecture: A, A-LRN, B, C, D
+  arch_name: "C"  # choose vgg architecture: A, A-LRN, B, C, D
 
   # VGG architecture ( [num_convs, out_channels])
   vgg_cfgs:

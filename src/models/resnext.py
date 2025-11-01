@@ -17,11 +17,6 @@ def _init_weights(m: nn.Module):
         nn.init.constant_(m.weight, 1)
         nn.init.constant_(m.bias, 0)
 
-class _Rescale01(nn.Module):
-    """Scale raw [0,255] images to [0,1]."""
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x / 255.0
-
 class ResNeXtBottleneck(nn.Module):
     expansion = 4  # 输出通道扩展倍数
 
@@ -80,9 +75,6 @@ class ResNeXt(ModuleBase):
         super().__init__()
         self.num_classes = num_classes
         
-        # Rescale layer
-        self.rescale = _Rescale01()
-        
         # Network architecture
         self.stem = nn.Sequential(
             nn.Conv2d(3, 64, 7, 2, 3, bias=False),
@@ -108,7 +100,7 @@ class ResNeXt(ModuleBase):
         self.apply(_init_weights)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.rescale(x)
+        # x = self.rescale(x)  # 输入已经经过 ToTensor() 和 Normalize() 处理
         x = self.stem(x)
         x = self.layer1(x)
         x = self.layer2(x)

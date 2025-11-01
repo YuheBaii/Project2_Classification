@@ -1,9 +1,13 @@
 seed: 42
-device: "cpu"   # or "cuda"
+device: "cuda"   # or "cuda"
 num_workers: 4
 batch_size: 64
-epochs: 30
+epochs: 100
 lr: 1e-2
 amp: true
 output_root: "experiments"
 save_best_metric: "val_acc"
+
+early_stopping:
+  patience: 10        # Number of epochs with no improvement after which training will be stopped
+  min_delta: 0.001    # Minimum change to qualify as an improvement

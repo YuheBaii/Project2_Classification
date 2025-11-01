@@ -21,11 +21,6 @@ def _init_weights(m: nn.Module):
         if m.bias is not None:
             nn.init.zeros_(m.bias)
 
-class _Rescale01(nn.Module):
-    """Scale raw [0,255] images to [0,1]."""
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x / 255.0
-
 class BNCnn(ModuleBase):
     """
     CNN for binary classification (dog vs cat), Keras-style:
@@ -40,7 +35,6 @@ class BNCnn(ModuleBase):
         H, W = input_size
 
         # Feature extractors
-        self.rescale = _Rescale01()
         self.features = nn.Sequential(
             # Block 1
             nn.Conv2d(in_channels, 32, kernel_size=3, stride=1, padding=0,bias=False),
@@ -77,7 +71,7 @@ class BNCnn(ModuleBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         print("input:", x.shape)
-        x = self.rescale(x)          # [B,3,H,W] -> scaled
+        # x = self.rescale(x)  # 输入已经经过 ToTensor() 和 Normalize() 处理
         print("rescaled:", x.shape)
         x = self.features(x)         # conv stacks    
         print("features:", x.shape)

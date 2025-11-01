@@ -28,12 +28,18 @@ def main():
     save_json(cfg, os.path.join(run_dir, "cfg_effective.json"))
 
     print(f"开始训练... 日志保存在: {run_dir}")
-    trainer = build_trainer(cfg)
+    trainer = build_trainer(cfg, run_dir=run_dir)  # 传递run_dir给trainer
     history, best_model_state, best_acc = trainer.fit(model, datamodule,optimizer)
+    
+    # 保存class_names到checkpoint
     if best_model_state is not None:
-        best_ckpt_path = os.path.join(run_dir, "checkpoints", "best_acc.ckpt")
-        torch.save({"model": best_model_state, "acc": best_acc,"class_names": class_names}, best_ckpt_path)
-        save_json(history, os.path.join(run_dir, "history.json"))
+        ckpt_path = os.path.join(run_dir, "checkpoints", "best_acc.ckpt")
+        if os.path.exists(ckpt_path):
+            ckpt = torch.load(ckpt_path)
+            ckpt["class_names"] = class_names
+            torch.save(ckpt, ckpt_path)
+            print(f"Training completed! Best accuracy: {best_acc:.4f}")
+            print(f"Results saved to: {run_dir}")
 
 
 

@@ -21,11 +21,6 @@ def _init_weights(m: nn.Module):
         if m.bias is not None:
             nn.init.zeros_(m.bias)
 
-class _Rescale01(nn.Module):
-    """Scale raw [0,255] images to [0,1]."""
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x / 255.0
-
 # def _init_weights(m: nn.Module):
 #     if isinstance(m, nn.Conv2d):
 #         nn.init.kaiming_normal_(m.weight, nonlinearity="relu")
@@ -50,7 +45,6 @@ class SimpleCNNBinary(ModuleBase):
         H, W = input_size
 
         # Feature extractors
-        self.rescale = _Rescale01()
         self.features = nn.Sequential(
             # Block 1
             nn.Conv2d(in_channels, 32, kernel_size=3, stride=1, padding=0), nn.ReLU(inplace=True),
@@ -71,7 +65,7 @@ class SimpleCNNBinary(ModuleBase):
         # Infer flatten dim with a dry run (CPU safe)
         with torch.no_grad():
             dummy = torch.zeros(1, in_channels, H, W)
-            feat = self.features(self.rescale(dummy))
+            feat = self.features(dummy)
             self._flat_dim = feat.view(1, -1).size(1)
 
         # 根据 num_classes 决定输出维度
@@ -88,7 +82,7 @@ class SimpleCNNBinary(ModuleBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         print("input:", x.shape)
-        x = self.rescale(x)          # [B,3,H,W] -> scaled
+        # x = self.rescale(x)  # 输入已经经过 ToTensor() 和 Normalize() 处理
         print("rescaled:", x.shape)
         x = self.features(x)         # conv stacks    
         print("features:", x.shape)

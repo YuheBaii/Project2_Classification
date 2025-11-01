@@ -3,11 +3,6 @@ import torch
 from torch import nn
 from src.core.model_base import ModuleBase
 
-class _Rescale01(nn.Module):
-    """Scale raw [0,255] images to [0,1]."""
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x / 255.0
-
 def _init_weights(m: nn.Module):
     if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, nonlinearity="relu")
@@ -43,29 +38,24 @@ class VGG(ModuleBase):
             nn.LazyLinear(4096), nn.ReLU(), nn.Dropout(0.5),
             nn.LazyLinear(4096), nn.ReLU(), nn.Dropout(0.5),
             nn.LazyLinear(out_features))
-        self.rescale = _Rescale01()
         self.loss_fn = loss_fn if loss_fn is not None else nn.BCEWithLogitsLoss()
         
         # Initialize lazy layers with a dummy forward pass, then apply custom weights
         # This must be done outside of the actual forward to avoid inplace modification during training
         with torch.no_grad():
             dummy_input = torch.zeros(1, 3, img_size, img_size)  # Use img_size from config
-            _ = self.net(self.rescale(dummy_input))
+            _ = self.net(dummy_input)
         
         # Now apply custom initialization after lazy layers are materialized
         self.apply(_init_weights)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        #print("input:", x.shape)
-        x = self.rescale(x)          # [B,3,H,W] -> scaled
-        #print("rescaled:", x.shape)
         x = self.net(x)         # conv stacks    
         return x
 
     def compute_loss(self, y_hat: torch.Tensor, y: torch.Tensor, criterion=None) -> torch.Tensor:
         # Use provided criterion, otherwise use the loss function set during initialization
         criterion = criterion if criterion is not None else self.loss_fn
-        print(f"DEBUG: Using criterion: {criterion}")
 
         if y_hat.shape[1] == 1:  
             y = y.float().view(-1, 1)
