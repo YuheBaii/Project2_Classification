@@ -21,7 +21,7 @@ cd /home/ee6483_40/Project2_Classification
 python -m src.engine.trainer \
   --cfg configs/base.yaml \
   --cfg configs/task/dogs_vs_cats.yaml \
-  --cfg configs/model/VGG.yaml \
+  --cfg configs/model/densenet121.yaml \
   --cfg configs/aug/light.yaml \
   --cfg configs/optim/adamw.yaml
 

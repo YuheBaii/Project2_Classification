@@ -5,12 +5,13 @@
 ### 1.1 数据增强对比实验
 实验目的: 评估不同数据增强策略对模型的影响(可以再加其他增强方式)
 
-- 1.1.1: SimpleCNN + basic augmentation + AdamW
+- 1.1.1: CNN_BN + basic augmentation + AdamW✅
     配置: configs/{base,task/dogs_vs_cats,model/SimpleCNN,aug/basic,optim/adamw}.yaml
+    结果：experiments/2025-11-01_14-48-27_dogs_vs_cats_cnn_bn
       
-- 1.1.2: SimpleCNN + light augmentation + AdamW✅
+- 1.1.2: CNN_BN + light augmentation + AdamW✅
     配置: configs/{base,task/dogs_vs_cats,model/SimpleCNN,aug/light,optim/adamw}.yaml
-    结果：experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary  
+    结果：experiments/2025-11-01_16-00-00_dogs_vs_cats_cnn_bn  
 ### 1.2 模型架构对比实验 (f)
 实验目的: 评估不同CNN架构的性能差异
 
@@ -23,23 +24,35 @@
 - 1.2.2: VGG-16 + light aug + AdamW (VGG有5种架构，可选其一跑)✅
     配置: configs/{base,task/dogs_vs_cats,model/VGG,aug/light,optim/adamw}.yaml  
     结果：experiments/2025-11-01_10-38-32_dogs_vs_cats_vgg
-- 1.2.3: ResNet18 + light aug + AdamW
+- 1.2.3: ResNet18 + light aug + AdamW✅
     配置: configs/{base,task/dogs_vs_cats,model/resnet18,aug/light,optim/adamw}.yaml
-- 1.2.4: ResNetXt + light aug + AdamW
+    结果：experiments/2025-11-01_12-36-25_dogs_vs_cats_resnet18
+- 1.2.4: ResNetXt + light aug + AdamW✅
     配置: configs/{base,task/dogs_vs_cats,model/resnetxt50,aug/light,optim/adamw}.yaml
-- 1.2.5: DenseNet（待实现）      
+    结果：experiments/2025-11-01_13-36-36_dogs_vs_cats_resnext50
+- 1.2.5: DenseNet_SMALL+ light aug + AdamW✅     
+    配置: configs/{base,task/dogs_vs_cats,model/densenet_small,aug/light,optim/adamw}.yaml
+    结果：experiments/2025-11-03_05-55-53_dogs_vs_cats_densenet
+- 1.2.6: DenseNet121+ light aug + AdamW ✅
+    配置: configs/{base,task/dogs_vs_cats,model/densenet121,aug/light,optim/adamw}.yaml
+    结果：experiments/2025-11-03_06-15-48_dogs_vs_cats_densenet
+
 
 ### 1.3 优化器和学习率对比实验 (c)
 实验目的: 评估优化器和学习率对训练的影响
-- 1.3.1: SimpleCNN + AdamW (lr=0.01) ✅
-         结果：experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary
+- 1.3.1: CNN_BN + AdamW (lr=0.01) ✅
+         结果：experiments/2025-11-01_16-00-00_dogs_vs_cats_cnn_bn  
       
-- 1.3.2: SimpleCNN + SGD (lr=0.01, momentum=0.9)
+- 1.3.2: CNN_BN + SGD (lr=0.001, momentum=0.9)✅
     配置: configs/{base,task/dogs_vs_cats,model/SimpleCNN,aug/light,optim/sgd}.yaml
-      
-- 1.3.3: SimpleCNN + AdamW (lr=0.001)
-
-- 1.3.4: SimpleCNN + AdamW (lr=0.01)
+    结果：experiments/2025-11-01_17-47-32_dogs_vs_cats_cnn_bn
+- 1.3.3: CNN_BN + SGD (lr=0.01, momentum=0.9)✅
+    配置: configs/{base,task/dogs_vs_cats,model/SimpleCNN,aug/light,optim/sgd}.yaml
+    结果：experiments/2025-11-02_04-45-10_dogs_vs_cats_cnn_bn
+- 1.3.4: CNN_BN + AdamW (lr=0.001)✅
+结果：Project2_Classification/experiments/2025-11-01_17-26-41_dogs_vs_cats_cnn_bn
+- 1.3.4: CNN_BN + AdamW (lr=0.1)✅
+         结果：experiments/2025-11-01_16-49-38_dogs_vs_cats_cnn_bn
 
 
 ## 实验2: 错误案例分析 (e)

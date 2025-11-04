@@ -7,7 +7,7 @@ import argparse
 from pathlib import Path
 from tqdm import tqdm
 from src.datamodules.cifar10 import CIFAR10DataModule
-from src.transforms.build import build_model
+from Project2_Classification.src.transforms.build import build_model
 from torchvision.datasets import CIFAR10
 from torch.utils.data import DataLoader
 
@@ -79,7 +79,7 @@ def evaluate_cifar10(run_dir: str):
     datamodule.setup(stage="test")
     
     # Build test transforms from config
-    from src.transforms.build import build_transforms
+    from Project2_Classification.src.transforms.build import build_transforms
     aug_cfg = cfg.get("aug", {})
     _, test_transform = build_transforms(aug_cfg)
     

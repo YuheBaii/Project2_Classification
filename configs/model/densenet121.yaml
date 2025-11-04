@@ -1,0 +1,19 @@
+# DenseNet Configuration
+# DenseNet-121: arch=(6,12,24,16), growth_rate=32
+# DenseNet-169: arch=(6,12,32,32), growth_rate=32
+# DenseNet-201: arch=(6,12,48,32), growth_rate=32
+# DenseNet-264: arch=(6,12,64,48), growth_rate=32
+
+model:
+  name: "densenet"
+  
+  # DenseNet-121 architecture
+  arch: [6, 12, 24, 16]
+  num_channels: 64  # Initial number of channels
+  growth_rate: 32   # Growth rate k
+  
+  # Loss function
+  loss_fn: "ce"  # ce for multi-class, bce for binary
+  
+  # Dropout (optional)
+  dropout_p: 0.0

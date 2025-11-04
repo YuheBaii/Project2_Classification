@@ -1,0 +1,16 @@
+# DenseNet Small Configuration (for faster training/testing)
+# Smaller architecture for experiments
+
+model:
+  name: "densenet"
+  
+  # Small DenseNet architecture (fewer layers)
+  arch: [4, 4, 4, 4]
+  num_channels: 64  # Initial number of channels
+  growth_rate: 32   # Growth rate k
+  
+  # Loss function
+  loss_fn: "ce"  # ce for multi-class, bce for binary
+  
+  # Dropout (optional)
+  dropout_p: 0.0

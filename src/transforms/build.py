@@ -149,7 +149,19 @@ def build_model(cfg, num_classes):
         
         return ResNeXt(layers=layers, groups=groups, width_per_group=width_per_group,
                       num_classes=num_classes, loss_fn=loss_fn)
-
+    
+    elif m == "densenet":
+        from src.models.densenet import DenseNet
+        # DenseNet-121: arch=(6,12,24,16), growth_rate=32
+        num_channels = cfg["model"].get("num_channels", 64)
+        growth_rate = cfg["model"].get("growth_rate", 32)
+        arch = cfg["model"].get("arch", (4, 4, 4, 4))
+        
+        print(f"DenseNet arch: {arch}, growth_rate: {growth_rate}, num_channels: {num_channels}")
+        print(f"DenseNet img_size: {img_size}")
+        
+        return DenseNet(num_channels=num_channels, growth_rate=growth_rate, arch=arch,
+                       num_classes=num_classes, loss_fn=loss_fn)
     
     raise ValueError(f"Unknown model: {m}")
 

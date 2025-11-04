@@ -9,7 +9,7 @@ import seaborn as sns
 
 def load_model_and_predict(checkpoint_path, datamodule, device='cuda'):
     """加载模型并进行预测"""
-    from src.transforms.build import build_model
+    from Project2_Classification.src.transforms.build import build_model
     
     # 加载checkpoint
     ckpt = torch.load(checkpoint_path, map_location=device)
