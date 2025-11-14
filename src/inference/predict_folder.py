@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 from src.utils.io import load_cfg
-from Project2_Classification.src.transforms.build import build_transforms, build_model
+from src.transforms.build import build_transforms, build_model
 from src.datamodules.dogs_vs_cats import _FolderNoLabel
 
 def load_model(run_dir, cfg, device):

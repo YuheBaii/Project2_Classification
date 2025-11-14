@@ -77,18 +77,74 @@
 ## 实验3: CIFAR-10 基础训练 (g)
 
 - 3.1: ResNet18 + CIFAR-10 + basic aug + AdamW
-    配置: configs/{base,task/cifar10,model/resnet18,aug/basic,optim/adamw}.yaml
+    配置: configs/{base,task/cifar10,model/resnet18,aug/light,optim/adamw}.yaml
+    结果(patience=10)：experiments/2025-11-06_12-04-17_cifar10_resnet18
+    (best:epoch=7, Best accuracy: 0.7664, stop at epoch=17)
+    结果2(patience=50):experiments/2025-11-06_13-02-32_cifar10_resnet18
+        模型重新修改为resnet_small.py, resnet18_small.yaml：
+    配置：train_job_task3.sh : 
+    配置: configs/{base,task/cifar10,model/resnet18_small,aug/basic,optim/adamw}.yaml
+    结果(epoch=250 patience=50):experiments/2025-11-09_03-56-56_cifar10_resnet18_small
+    运行evaluator:train_job_task3_3.sh:
+    结果：log: output-12378.log
+    绘制分析结果(运行analyze_error)：train_evaluate_task3_2.sh
+    结果：experiments/2025-11-09_03-56-56_cifar10_resnet18_small/error_analysis
+    analysis-12385.log
       
 ### 3.2: CIFAR-10 类别不平衡处理 (h)，测试三种处理方法:
 - 3.2.1: 加权损失函数 (Class Weights)。对少数类赋予更高的loss权重
-         ResNet18 + 不平衡CIFAR-10 + Class Weighted CE Loss
-      
+         ResNet18 + 不平衡CIFAR-10 + Class Weighted CE Loss     
+    配置：train_job_task3_1.sh
+    配置: configs/{base,task/cifar10_imbalanced,model/resnet18,aug/light,optim/adamw}.yaml
+    结果(patience=10): experiments/2025-11-06_17-43-41_cifar10_imbalanced_resnet18
+    结果2(patience=50):experiments/2025-11-07_01-27-15_cifar10_imbalanced_resnet18  
+    
+    模型重新修改为resnet_small.py, resnet18_small.yaml：
+    配置：train_job_task3_2.sh : 
+    配置: configs/{base,task/cifar10_imbalanced,model/resnet18_small,aug/basic,optim/adamw}.yaml
+    结果(epoch=250 patience=50):experiments/2025-11-09_05-59-58_cifar10_imbalanced_resnet18_small
+    运行evaluator:train_job_task3_3.sh:
+    结果：log:output-12436.log
+    绘制分析结果(运行analyze_error)：train_evaluate_task3_2.sh
+    结果：experiments/2025-11-09_05-59-58_cifar10_imbalanced_resnet18_small/error_analysis
+
 - 3.2.2: 过采样 (Oversampling)，在训练时对少数类进行重复采样
          ResNet18 + 不平衡CIFAR-10 + WeightedRandomSampler
+    配置：train_job_task3_1.sh (cifar10_imbalanced.yaml内改为oversampling)
+    配置: configs/{base,task/cifar10_imbalanced,model/resnet18,aug/light,optim/adamw}.yaml
+    结果(patience=50)：experiments/2025-11-07_01-50-24_cifar10_imbalanced_resnet18
+    结果(epoch=150patience=50)：experiments/2025-11-07_02-27-28_cifar10_imbalanced_resnet18
+    acc=0.8076
+
+    模型重新修改为resnet_small.py, resnet18_small.yaml：
+    配置：train_job_task3_2.sh : 
+    配置: configs/{base,task/cifar10_imbalanced,model/resnet18_small,aug/basic,optim/adamw}.yaml
+    结果(epoch=250 patience=50):experiments/2025-11-09_06-33-41_cifar10_imbalanced_resnet18_small
+    运行evaluator:train_job_task3_3.sh:
+    结果：log:output-12460.log
+    绘制分析结果(运行analyze_error)：train_evaluate_task3_2.sh
+    结果：experiments/2025-11-09_06-33-41_cifar10_imbalanced_resnet18_small/error_analysis
+
     
 - 3.2.3: Focal Loss，降低易分类样本的权重，专注于困难样本
          ResNet18 + 不平衡CIFAR-10 + Focal Loss
          参考: https://arxiv.org/abs/1708.02002
+    配置：train_job_task3_1.sh : 
+    cifar10_imbalanced.yaml内改为  balance_method: "focal_loss"  # 使用过采样
+    configs/model/resnet18_focal.yaml内修改：  loss_fn: "focal_loss"
+    配置: configs/{base,task/cifar10_imbalanced,model/resnet18,aug/light,optim/adamw}.yaml
+    结果(epoch=100patience=50): experiments/2025-11-07_04-22-01_cifar10_imbalanced_resnet18
+    acc=0.8082
+
+    模型重新修改为resnet_small.py, resnet18_small.yaml：
+    配置：train_job_task3_2.sh : 
+    配置: configs/{base,task/cifar10_imbalanced,model/resnet18_small,aug/basic,optim/adamw}.yaml
+    结果(epoch=250 patience=50):experiments/2025-11-08_13-54-18_cifar10_imbalanced_resnet18_small
+    运行evaluator:train_job_task3_3.sh:
+    结果：log:output-12296.log
+    绘制分析结果(运行analyze_error)：train_evaluate_task3_2.sh
+    结果：experiments/2025-11-08_13-54-18_cifar10_imbalanced_resnet18_small/error_analysis
+    analysis-12359.log
 
 
 对比指标:

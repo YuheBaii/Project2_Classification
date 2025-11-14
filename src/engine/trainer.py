@@ -19,8 +19,10 @@ def main():
     # 构建数据增强transforms
     train_tf, val_tf = build_transforms(cfg.get("aug", {}))
 
-    datamodule, class_names = build_data(cfg, train_tf, val_tf)
-    model = build_model(cfg, num_classes=len(class_names)).to(device)
+    #datamodule, class_names = build_data(cfg, train_tf, val_tf)
+    datamodule, class_names, class_weights = build_data(cfg, train_tf, val_tf)
+    #model = build_model(cfg, num_classes=len(class_names)).to(device)
+    model = build_model(cfg, num_classes=len(class_names), class_weights=class_weights).to(device)
     optimizer = build_optimizer(cfg,model)
 
     name_hint = f"{cfg['task']['name']}_{cfg['model']['name']}"

@@ -1,0 +1,3 @@
+low_count=246
+total_count=5000
+accuracy_on_low_confidence=63.0081

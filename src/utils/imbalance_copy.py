@@ -253,18 +253,20 @@ def create_imbalance_dataset(dataset, imbalance_type, num_classes, balance_metho
 # -------------------------------------------------------------------
 
 # 替换整个 ImbalanceCIFAR10DataModule 类定义
-class ImbalanceCIFAR10DataModule: 
+class ImbalanceCIFAR10DataModule: # ⬅️ 不再继承 LightningDataModule
     def __init__(
         self,
         data_root: str,
-        img_size: int,         # 必须传入
-        num_classes: int,      # 必须传入
+        # ⚠️ 确保这些参数在您的 build_data 中被正确传入
+        img_size: int, 
+        num_classes: int,
         batch_size: int = 64,
         num_workers: int = 4,
-        imbalance_type: str = "none",  # <--- 接受 type 字符串 (e.g., "moderate")
+        imbalance_type: str = "none",  
         balance_method: str = "none",  
         seed: int = 42,
     ):
+        # 移除 super().__init__()
         self.data_root = data_root
         self.img_size = img_size
         self.num_classes = num_classes
@@ -283,29 +285,22 @@ class ImbalanceCIFAR10DataModule:
         self.class_weights = None
         self.sampler = None
         self.class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
-                            'dog', 'frog', 'horse', 'ship', 'truck'] 
-
+                            'dog', 'frog', 'horse', 'ship', 'truck'] # 添加 class_names
+        
+    # setup 方法签名不变，因为它被 build_data 调用
     def setup(self, stage=None, train_tf=None, val_tf=None):
-        # 1. 保存/更新 transforms (兼容 build.py 传入)
+        # 1. 保存/更新 transforms
         if train_tf is not None:
             self.train_tf = train_tf
         if val_tf is not None:
             self.val_tf = val_tf
         
+        # 确保 val_tf 至少是 T.ToTensor()
         if self.val_tf is None:
+            # 兼容性修复：如果 config 没提供 transforms，至少要能转 Tensor
             self.val_tf = T.ToTensor() 
 
-        # 2. 获取实际的 imbalance_ratios 字典
-        # 🚨 关键修复点：在 setup 中从配置字典中查找比例
-        if self.imbalance_type in IMBALANCE_CONFIGS:
-            imbalance_ratios = IMBALANCE_CONFIGS[self.imbalance_type]
-            print(f"\nLoaded imbalance ratios: {self.imbalance_type} -> {imbalance_ratios}")
-        else:
-            imbalance_ratios = {i: 1.0 for i in range(self.num_classes)}
-            print("Imbalance type not found. Using balanced (1.0) ratios.")
-        
-        
-        # 3. 加载原始 CIFAR-10 数据集
+        # 2. 加载原始 CIFAR-10 数据集 (使用传入或默认的 transforms)
         train_raw = CIFAR10(
             root=self.data_root, train=True, download=True, transform=self.train_tf
         )
@@ -313,39 +308,44 @@ class ImbalanceCIFAR10DataModule:
             root=self.data_root, train=False, download=True, transform=self.val_tf
         )
 
-        # 4. 创建不平衡训练集 (使用 ratios 字典)
-        if self.imbalance_type != "none":
-            # 🚨 关键修复点：直接调用 create_imbalanced_cifar10 并传入 ratios 字典
-            train_dataset_imbalanced = create_imbalanced_cifar10(train_raw, imbalance_ratios)
+        # 3. 创建不平衡训练集 (如果需要)
+        if self.imbalance_type != "none" and self.imbalance_type is not None:
+            # 使用项目中的 create_imbalance_dataset 函数
+            train_dataset_imbalanced, self.class_weights, self.sampler = create_imbalance_dataset(
+                dataset=train_raw, 
+                imbalance_type=self.imbalance_type, 
+                num_classes=self.num_classes, 
+                balance_method=self.balance_method # ⚠️ 注意：如果你的 create_imbalance_dataset 没有这个参数需要调整
+            )
             self.train_dataset = train_dataset_imbalanced
-            
-            # 计算权重和采样器 (基于不平衡后的数据集)
-            if self.balance_method == 'oversampling':
-                self.sampler = create_weighted_sampler(self.train_dataset, self.num_classes)
-            
-            if self.balance_method in ['class_weights', 'focal_loss']:
-                self.class_weights = compute_class_weights(self.train_dataset, self.num_classes)
-
         else:
-            # 无不平衡
             self.train_dataset = train_raw
-            self.sampler = None
-            self.class_weights = None
 
-        self.val_dataset = val_raw 
+        self.val_dataset = val_raw # Val set 保持原始大小
 
-        # 5. 创建 Test Dataset (确保 transform 包含 T.ToTensor())
-        # ... (此处省略 test_dataset 的创建逻辑，请保持您的代码中原有的逻辑)
+        # 4. 创建 Test Dataset (核心修复点：确保 transform 包含 T.ToTensor())
+        current_test_tf = self.val_tf
+        safe_transforms = []
+
+        if isinstance(current_test_tf, T.Compose):
+            safe_transforms.extend(current_test_tf.transforms)
+        elif current_test_tf is not None:
+            safe_transforms.append(current_test_tf)
+            
+        has_to_tensor = any(isinstance(t, T.ToTensor) for t in safe_transforms)
+
+        if not has_to_tensor:
+            safe_transforms.append(T.ToTensor())
+            print("⚠️ 警告: 强制在 Test Set Transforms 中加入 T.ToTensor()。")
+
+        # 重新组合 safe_test_tf
+        safe_test_tf = T.Compose(safe_transforms) if len(safe_transforms) > 1 else safe_transforms[0]
         
-        # ⚠️ 注意: 您原始代码中的 test_dataset 创建逻辑可能仍有小问题，
-        # 为了保证功能，您需要确保 setup 块的最后是正确的 test_dataset 创建代码。
-        
-        # 简化后的 test_dataset 创建 (假设您使用 val_tf)
         self.test_dataset = CIFAR10( 
             root=self.data_root,
             train=False, 
             download=True,
-            transform=self.val_tf # 假设 val_tf 已包含 ToTensor
+            transform=safe_test_tf # ⬅️ 使用安全的变换
         )
 
     # 移除 train_dataloader, val_dataloader, test_dataloader 方法，因为 analyze_errors.py 只访问 test_dataset

@@ -1,0 +1,9 @@
+task:
+  name: cifar10_imbalanced
+  data_root: ./data/cifar10
+  img_size: 32
+  num_classes: 10
+  imbalance_type: "moderate"  # 从 imbalance.py 中的 IMBALANCE_CONFIGS 选择
+  #balance_method: "class_weights"  # 使用类别权重
+  balance_method: "oversampling"  # 使用过采样
+  #balance_method: "focal_loss"  # 使用过采样

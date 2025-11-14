@@ -10,10 +10,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report
+from torch.utils.data import DataLoader # 确保 DataLoader 全局可用
 
 # Optional: try to import seaborn for nicer heatmap; fallback to sklearn plotting
 try:
-    import seaborn as sns  # type: ignore
+    import seaborn as sns # type: ignore
     _HAS_SEABORN = True
 except Exception:
     _HAS_SEABORN = False
@@ -30,10 +31,15 @@ def load_model_and_data(cfg_path, checkpoint_path, device="cuda"):
         raise FileNotFoundError(f"Config file not found: {cfg_path}")
 
     with open(cfg_path, "r") as f:
-        cfg = yaml.safe_load(f)  # 改为 yaml.safe_load
+        # 假设配置可能是 JSON 或 YAML
+        if cfg_path.suffix in ['.yaml', '.yml']:
+            cfg = yaml.safe_load(f)
+        else:
+            cfg = json.load(f)
 
     # --- 导入项目内部构建函数（根据实际路径调整） ---
     try:
+        # 确保导入路径正确，这里保持用户原始的导入方式
         from src.transforms.build import build_transforms, build_data, build_model
     except Exception as e:
         raise ImportError(
@@ -42,37 +48,82 @@ def load_model_and_data(cfg_path, checkpoint_path, device="cuda"):
             f"原始错误: {e}"
         )
 
-    # --- 构建 transforms / datamodule / dataloader ---
-    train_tf, val_tf = build_transforms(cfg.get("augmentation", None))
-    datamodule, class_names = build_data(cfg, train_tf, val_tf)
+    # 🚨 关键修复点 A：在模型构建和权重检查之前加载 Checkpoint
+    checkpoint_path = Path(checkpoint_path)
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
 
-    # load_model_and_data 中修改 dataloader 获取逻辑
+    ckpt = torch.load(checkpoint_path, map_location=device)
+    print(f"Loaded checkpoint from {checkpoint_path}")
+
+    # --- 构建 transforms / datamodule ---
+    train_tf, val_tf = build_transforms(cfg.get("augmentation", None))
+    # 🚨 关键修复点 B：接收 build_data 返回的 3 个值
+    datamodule, class_names, class_weights = build_data(cfg, train_tf, val_tf)
+
+    # --- 获取最终的 class_weights ---
+    # 检查 DataModule 是否提供了权重，否则尝试从 Checkpoint 中获取
+    # 这解决了 'class_weights is None and 'class_weights' in ckpt' 处的 UnboundLocalError
+    if class_weights is None and 'class_weights' in ckpt:
+        class_weights = ckpt['class_weights']
+        print("Found class_weights in checkpoint and using it.")
+    
+    # --- 构建模型 ---
+    num_classes = len(class_names)
+    # 🚨 关键修复点 C：将 class_weights 传递给 build_model
+    model = build_model(cfg, num_classes=num_classes, class_weights=class_weights)
+    model.to(device)
+
+
+    # 【关键修改区域：手动构建 dataloader 以确保 transforms 已应用】
     dataloader = None
-    for fn in ["test_dataloader", "val_dataloader", "train_dataloader"]:
-        if hasattr(datamodule, fn):
-            dl = getattr(datamodule, fn)()
-            if dl is not None:
-                dataloader = dl
-                print(f"Using dataloader: {fn}")
-                break
+    target_dataset = None
+    
+    # 1. 尝试获取 test_dataset (最优先用于最终评估)
+    if hasattr(datamodule, "test_dataset") and datamodule.test_dataset is not None:
+        target_dataset = datamodule.test_dataset
+        print("Using datamodule's test_dataset for inference.")
+    # 2. 其次尝试获取 val_dataset
+    elif hasattr(datamodule, "val_dataset") and datamodule.val_dataset is not None:
+        target_dataset = datamodule.val_dataset
+        print("Using datamodule's val_dataset for inference.")
+        
+    # 如果找到了数据集，则手动创建 DataLoader
+    if target_dataset is not None:
+        # 从全局导入 DataLoader (确保 NameError 不再发生)
+        bs = cfg.get("batch_size", 128)
+        nw = cfg.get("num_workers", 4)
+        
+        dataloader = DataLoader(
+            target_dataset,
+            batch_size=bs,
+            shuffle=False,
+            num_workers=nw,
+            pin_memory=True,
+        )
+        print(f"Manually created DataLoader with batch_size={bs}, num_workers={nw}")
+
+    # 【回退逻辑：如果 DataModule 没有公开 dataset 属性】
+    if dataloader is None:
+        print("Dataset properties not found, falling back to dataloader() method.")
+        for fn in ["test_dataloader", "val_dataloader", "train_dataloader"]:
+            if hasattr(datamodule, fn):
+                dl = getattr(datamodule, fn)()
+                if dl is not None:
+                    dataloader = dl
+                    print(f"Fallback: Using dataloader via: {fn}()")
+                    break
+    
+    # 【结束关键修改区域】
 
     if dataloader is None:
         raise ValueError(
             "无法从 datamodule 获取 dataloader，请检查 dataset 路径是否正确。"
         )
     
-
-    # --- 构建模型 ---
-    model = build_model(cfg, num_classes=len(class_names))
-    model.to(device)
-
     # --- 加载 checkpoint 并处理可能的 key 前缀 ---
-    checkpoint_path = Path(checkpoint_path)
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
-
-    ckpt = torch.load(checkpoint_path, map_location=device)
-
+    # 确保 class_weights 已在模型构建时被使用
+    
     # 从 checkpoint 中提取 class_names（如果存在）
     ckpt_class_names = ckpt.get("class_names", None)
     if ckpt_class_names:
@@ -87,8 +138,10 @@ def load_model_and_data(cfg_path, checkpoint_path, device="cuda"):
                  for k, v in state_dict.items()}
 
     try:
+        # 尝试严格加载
         model.load_state_dict(new_state)
     except RuntimeError as e:
+        # 🚨 保持 strict=False 修复以应对 loss_fn.weight 等不匹配键
         model.load_state_dict(new_state, strict=False)
         print("Warning: loaded state_dict with strict=False due to mismatch:", e)
 
@@ -133,12 +186,30 @@ def analyze_predictions(model, dataloader, class_names, device='cuda'):
                 images, labels = images.to(device), labels.to(device)
 
                 outputs = model(images)
-                probs = torch.softmax(outputs, dim=1)
-                preds = torch.argmax(probs, dim=1)
+                # 对于多分类，通常使用 softmax
+                if outputs.dim() == 2 and outputs.shape[1] > 1:
+                    probs = torch.softmax(outputs, dim=1)
+                    preds = torch.argmax(probs, dim=1)
+                elif outputs.dim() == 2 and outputs.shape[1] == 1: # 可能是二分类，输出为 (N, 1)
+                    # 假设 BCEWithLogitsLoss 的输出，使用 sigmoid
+                    probs = torch.sigmoid(outputs).squeeze(1) # (N,)
+                    preds = (probs > 0.5).long()
+                else:
+                    # 默认多分类
+                    probs = torch.softmax(outputs, dim=1)
+                    preds = torch.argmax(probs, dim=1)
+
 
                 all_preds.extend(preds.cpu().numpy())
                 all_labels.extend(labels.cpu().numpy())
-                all_probs.extend(probs.cpu().numpy())
+                
+                # 对于二分类 (N,) 的 probs，需要扩展维度才能用 np.array(all_probs)
+                if probs.dim() == 1:
+                    # 转换为 (N, 1) 格式，或只存储 (N, 1) 的预测概率
+                    all_probs.extend(probs.unsqueeze(1).cpu().numpy())
+                else:
+                    all_probs.extend(probs.cpu().numpy())
+
                 all_images.extend(images.cpu())
 
             except Exception as e:
@@ -147,8 +218,6 @@ def analyze_predictions(model, dataloader, class_names, device='cuda'):
 
     print(f"推理完成，共成功处理 {len(all_preds)} 张样本")
     return np.array(all_preds), np.array(all_labels), np.array(all_probs), all_images
-
-
 
 
 def plot_confusion_matrix(y_true, y_pred, class_names, save_path=None):
@@ -192,6 +261,7 @@ def visualize_cases(images, labels, preds, probs, class_names,
     axes = axes.flatten()
 
     # 常用 ImageNet 归一化参数（如你使用不同参数请修改）
+    # 注意：您的配置文件使用的正是 ImageNet mean/std
     mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
     std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 
@@ -200,7 +270,7 @@ def visualize_cases(images, labels, preds, probs, class_names,
             ax.axis("off")
             continue
         idx = selected[i]
-        img = images[idx]  # tensor C,H,W on CPU
+        img = images[idx] # tensor C,H,W on CPU
         if isinstance(img, torch.Tensor):
             # 反归一化（假设图像已经被 normalized）
             try:
@@ -215,7 +285,15 @@ def visualize_cases(images, labels, preds, probs, class_names,
         ax.imshow(img_disp)
         true_label = class_names[int(labels[idx])]
         pred_label = class_names[int(preds[idx])]
-        conf = float(probs[idx][int(preds[idx])]) * 100.0
+        
+        # 处理 probs 的维度，确保能正确取到置信度
+        if probs.ndim == 2:
+            conf = float(probs[idx][int(preds[idx])]) * 100.0
+        elif probs.ndim == 1: # 二分类 (N,) 只有一列概率
+            conf = float(probs[idx]) * 100.0
+        else:
+            conf = 0.0
+        
         color = "green" if correct else "red"
         ax.set_title(f"T:{true_label}\nP:{pred_label}\nConf:{conf:.1f}%", color=color, fontsize=9)
         ax.axis("off")
@@ -233,6 +311,14 @@ def analyze_error_statistics(labels, preds, probs, class_names, output_dir=None)
     preds = np.array(preds, dtype=int)
     probs = np.array(probs, dtype=float)
 
+    # 处理二分类 probs 只有一维的情况
+    if probs.ndim == 1:
+        # max_probs 保持不变
+        max_probs = probs
+    else:
+        # 多分类 max_probs 保持不变
+        max_probs = np.max(probs, axis=1)
+
     report = classification_report(labels, preds, target_names=class_names, digits=4)
     print("\n" + "="*60)
     print("Classification Report:")
@@ -249,17 +335,16 @@ def analyze_error_statistics(labels, preds, probs, class_names, output_dir=None)
         total = np.sum(mask)
         correct = np.sum((labels == preds) & mask)
         acc = 100.0 * correct / total if total > 0 else 0.0
-        print(f"  {cname}: total={total}, correct={correct}, acc={acc:.2f}%")
+        print(f"  {cname}: total={total}, correct={correct}, acc={acc:.2f}%")
         # 列出被预测为其他类别的计数
         if total > 0:
             for j, other in enumerate(class_names):
                 if i == j: continue
                 cnt = np.sum(preds[mask] == j)
                 if cnt > 0:
-                    print(f"    mis -> {other}: {cnt}")
+                    print(f"    mis -> {other}: {cnt}")
 
     # 低置信度统计（阈值 0.8）
-    max_probs = np.max(probs, axis=1)
     low_conf_mask = max_probs < 0.8
     low_count = int(np.sum(low_conf_mask))
     total_count = len(labels)

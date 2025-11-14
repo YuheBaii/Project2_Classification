@@ -1,0 +1,53 @@
+# ===============================
+# DenseNet-121 Configuration
+# ===============================
+
+task:
+  name: "dogs_vs_cats"
+  data_root: "./data/dogs_vs_cats"
+  train_dir: "train"
+  val_dir: "val"
+  test_dir: "test"
+  img_size: 224
+  num_classes: 2
+  class_names: ["cat", "dog"]
+
+model:
+  name: "densenet"
+  arch: [6, 12, 24, 16]
+  num_channels: 64
+  growth_rate: 32
+  loss_fn: "ce"
+  dropout_p: 0.0
+
+batch_size: 32
+num_workers: 4
+
+
+
+# --- Augmentation / Transforms ---
+augmentation:
+  val:
+    - type: "Resize"
+      size: 224
+    - type: "CenterCrop"
+      size: 224
+    - type: "ToTensor"
+    - type: "Normalize"
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+  train:
+    - type: "RandomResizedCrop"
+      size: 224
+    - type: "RandomHorizontalFlip"
+      p: 0.5
+    - type: "ToTensor"
+    - type: "Normalize"
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+      
+# --- DataLoader settings ---
+dataloader:
+  batch_size: 32
+  num_workers: 4
+  shuffle: true

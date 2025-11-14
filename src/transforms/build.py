@@ -6,6 +6,7 @@ from src.models.cnn import SimpleCNNBinary
 from src.losses.focal_loss import FocalLoss
 from src.models.cnn_bn import BNCnn
 from src.models.VGG import VGG
+from src.utils.imbalance import ImbalanceCIFAR10DataModule, IMBALANCE_CONFIGS
 
 def _op(op):
     t = op["type"]
@@ -41,15 +42,75 @@ def build_transforms(cfg_aug):
     return train_tf, val_tf
 
 
-def build_loss(cfg):
+#def build_loss(cfg):
+#def build_loss(cfg, class_weights=None): # <--- 🚨 关键修复点：添加 class_weights 参数
+#    # 若任务包含不平衡CIFAR-10
+#   if "task" in cfg and cfg["task"]["name"] == "cifar10_imbalanced":
+#        balance_method = cfg["task"].get("balance_method", None)
+#        if balance_method == "class_weights":
+#            from src.utils.imbalance import ImbalanceCIFAR10DataModule, IMBALANCE_CONFIGS, compute_class_weights
+#            import torchvision
+#            from torch import nn
+
+#            tmp_dataset = torchvision.datasets.CIFAR10(root=cfg["task"]["data_root"], train=True, download=True)
+#            weights = compute_class_weights(tmp_dataset, num_classes=10)
+#            print(f"Using class-weighted CE loss. Weights = {weights.tolist()}")
+#            return nn.CrossEntropyLoss(weight=weights)
+
+#    loss_name = cfg["model"]["loss_fn"]
+#    if loss_name == "focal":
+#        return FocalLoss(gamma=cfg.get("gamma", 2.0))
+#    elif loss_name == "bce":
+#        from src.losses.BCE import build_bce
+#        return build_bce()
+#    else:
+#        from src.losses.CE import build_ce
+#        return build_ce()
+
+
+def build_loss(cfg, class_weights=None): # 确保签名是 build_loss(cfg, class_weights=None)
+    from torch import nn
     loss_name = cfg["model"]["loss_fn"]
+    
+    # 1. 检查是否需要使用类别权重（来自 DataModule）
+    if "task" in cfg and cfg["task"]["name"] == "cifar10_imbalanced":
+        balance_method = cfg["task"].get("balance_method", None)
+        
+        # 使用 class_weights 进行 CE loss
+        if balance_method == "class_weights":
+            if class_weights is not None:
+                print(f"Using class-weighted CE loss. Weights = {class_weights.tolist()}")
+                # 传入 DataModule 已经计算好的不平衡权重
+                return nn.CrossEntropyLoss(weight=class_weights)
+            else:
+                print("Warning: class_weights requested but not provided. Using standard CE loss.")
+
+        # 使用 Focal Loss
+        elif balance_method == "focal_loss":
+            # Focal Loss 通常也使用权重（alpha）来处理不平衡
+            gamma = cfg.get("gamma", 2.0)
+            if class_weights is not None:
+                print(f"Using Focal Loss with alpha weights (gamma={gamma}).")
+            else:
+                print(f"Using standard Focal Loss (gamma={gamma}).")
+            # 传入 class_weights 作为 alpha
+            return FocalLoss(alpha=class_weights, gamma=gamma)
+            
+        # 如果是 imbalanced 任务但没选平衡方法，或者权重没传进来，退回到标准 CE
+        
+    # 2. 默认损失函数逻辑
+    
     if loss_name == "focal":
+        # 这是一个兼容性回退，如果配置了 focal 但没有走 imbalanced 逻辑，则使用标准 focal
         return FocalLoss(gamma=cfg.get("gamma", 2.0))
+        
     elif loss_name == "bce":
         from src.losses.BCE import build_bce
         return build_bce()
-    else:
+    
+    else: # 默认 CE
         from src.losses.CE import build_ce
+        # 最后的保障：如果 balance_method 是 class_weights 但权重没传进来，这里会用无权重的 CE
         return build_ce()
 
 def build_data(cfg, train_tf=None, val_tf=None):
@@ -83,6 +144,32 @@ def build_data(cfg, train_tf=None, val_tf=None):
         )
         dm.setup()
         return dm, dm.class_names
+
+    elif t == "cifar10_imbalanced":
+        # 使用 ImbalanceCIFAR10DataModule
+        from src.utils.imbalance import ImbalanceCIFAR10DataModule, IMBALANCE_CONFIGS
+        
+        task_cfg = cfg["task"]
+        
+        imbalance_type = task_cfg.get("imbalance_type", "moderate")
+        balance_method = task_cfg.get("balance_method", "class_weights")
+        
+        dm = ImbalanceCIFAR10DataModule(
+            data_root=task_cfg["data_root"],
+            img_size=task_cfg.get("img_size", 32),
+            num_classes=task_cfg.get("num_classes", 10),
+            batch_size=bs,
+            num_workers=nw,
+            imbalance_type=imbalance_type,
+            balance_method=balance_method
+        )
+        
+        # setup 会创建不平衡数据集并计算 class_weights
+        dm.setup(train_tf=train_tf, val_tf=val_tf)
+        
+        # 🚨 关键修复点 A：返回 datamodule 和 class_weights
+        return dm, dm.class_names, dm.class_weights # <--- 添加 dm.class_weights
+    
     else:
         raise ValueError(f"Unknown task: {t}")
 
@@ -95,10 +182,12 @@ def build_trainer(cfg, run_dir=None):
         min_delta=cfg.get("early_stopping", {}).get("min_delta", 0.0),
         run_dir=run_dir,
     )
-def build_model(cfg, num_classes):
+#def build_model(cfg, num_classes):
+def build_model(cfg, num_classes, class_weights=None): # <--- 添加 class_weights 参数
     m = cfg["model"]["name"]
     img_size = cfg["task"].get("img_size", 224)
-    loss_fn = build_loss(cfg)
+    #loss_fn = build_loss(cfg)
+    loss_fn = build_loss(cfg, class_weights=class_weights)
     loss_name = cfg["model"]["loss_fn"]
     print(f"Building model: {m} with loss: {loss_name}")
     if loss_name == "bce" and num_classes != 1:
@@ -150,6 +239,21 @@ def build_model(cfg, num_classes):
         return ResNeXt(layers=layers, groups=groups, width_per_group=width_per_group,
                       num_classes=num_classes, loss_fn=loss_fn)
     
+    #elif m == "resnet18_small":
+    #    from src.models.resnet_small import ResNet18Small
+    #    arch = cfg["model"].get("arch", ((2, 32), (2, 64), (2, 128), (2, 256)))
+    #    
+    #    print(f"ResNet18 arch:", arch)
+    #    print(f"ResNet18 img_size: {img_size}")
+    #    
+    #    return ResNet18Small(arch=arch, num_classes=num_classes, loss_fn=loss_fn)
+
+    elif m == "resnet18_small":
+        from src.models.resnet_small import ResNet18Small
+        print(f"Building CIFAR10-style ResNet18 (img_size={img_size}, num_classes={num_classes})")
+        return ResNet18Small(num_classes=num_classes, loss_fn=loss_fn)
+
+
     elif m == "densenet":
         from src.models.densenet import DenseNet
         # DenseNet-121: arch=(6,12,24,16), growth_rate=32
