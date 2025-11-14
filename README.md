@@ -157,16 +157,3 @@ Choose the augmentation you want by passing the corresponding `--cfg configs/aug
 - For reproducibility, set `seed` in `configs/base.yaml`.
 
 
-
-
-# 提交训练任务
-sbatch train_job.sh
-
-# 查看当前用户的所有任务
-squeue -u $USER
-
-# 查看特定任务详情
-scontrol show job <JOB_ID>
-
-# 取消任务
-scancel <JOB_ID>
