@@ -16,17 +16,25 @@ runs/
 
 # Experiments and datasets (too large for GitHub)
 experiments/*
-!experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/
-!experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn/
-!experiments/2025-10-27_17-08-44_cifar10_resnet18/
-experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.ckpt
-experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.pt
-experiments/2025-10-24_13-09-40_dogs_vs_cats_simple_cnn_binary/checkpoints/*.pth
-experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn/checkpoints/*.ckpt
-experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn/checkpoints/*.pt
-experiments/2025-10-26_14-51-41_dogs_vs_cats_cnn_bn/checkpoints/*.pth
-experiments/2025-10-27_17-08-44_cifar10_resnet18/checkpoints/*.ckpt
-experiments/2025-10-27_17-08-44_cifar10_resnet18/checkpoints/*.pt
-experiments/2025-10-27_17-08-44_cifar10_resnet18/checkpoints/*.pth
+
+# Task 1: Dogs vs Cats - 保留关键实验
+!experiments/2025-11-01_16-00-00_dogs_vs_cats_cnn_bn/
+!experiments/2025-11-01_12-36-25_dogs_vs_cats_resnet18/
+!experiments/2025-11-01_13-36-36_dogs_vs_cats_resnext50/
+!experiments/2025-11-03_06-15-48_dogs_vs_cats_densenet/
+
+# Task 3: CIFAR-10 基础训练
+!experiments/2025-11-09_03-56-56_cifar10_resnet18_small/
+
+# Task 3.2: CIFAR-10 不平衡处理 - 三种方法
+!experiments/2025-11-09_05-59-58_cifar10_imbalanced_resnet18_small/
+!experiments/2025-11-09_06-33-41_cifar10_imbalanced_resnet18_small/
+!experiments/2025-11-08_13-54-18_cifar10_imbalanced_resnet18_small/
+
+# 排除所有实验文件夹中的权重文件
+experiments/*/checkpoints/*.ckpt
+experiments/*/checkpoints/*.pt
+experiments/*/checkpoints/*.pth
+
 datasets/
 data/
