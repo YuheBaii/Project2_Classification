@@ -151,9 +151,36 @@ Choose the augmentation you want by passing the corresponding `--cfg configs/aug
   - If `loss_fn: bce` is used during training, the model outputs a single logit per sample (shape `[B,1]`) and inference code converts it with `sigmoid` to obtain probabilities for two classes.
   - If `loss_fn: ce` is used, the model outputs logits for each class (shape `[B,C]`) and inference uses `softmax`.
 
+## Experiment Results
+
+This repository includes results from comprehensive experiments on Dogs vs. Cats and CIFAR-10 datasets:
+
+### Dogs vs. Cats Experiments
+- **Model Architecture Comparison**: Evaluated CNN_BN, ResNet18, ResNeXt50, and DenseNet121 architectures
+- **Optimizer & Learning Rate**: Tested AdamW with different learning rates (0.001, 0.01, 0.1) and SGD variants
+- **Data Augmentation**: Compared basic vs. light augmentation strategies
+
+### CIFAR-10 Experiments
+- **Baseline Training**: ResNet18_Small with standard balanced dataset
+- **Imbalanced Dataset Handling**: Implemented and compared three methods:
+  - **Class Weights**: Weighted loss function to balance class contributions
+  - **Oversampling**: WeightedRandomSampler for minority class oversampling
+  - **Focal Loss**: Focus on hard-to-classify samples
+
+### Experiment Artifacts
+Each experiment directory contains:
+- `cfg_effective.json`: Complete configuration used for reproducibility
+- `history.json`: Training/validation loss and accuracy curves
+- `error_analysis/`: Confusion matrices, error cases visualization, and classification reports
+- `predictions.csv` / `submission.csv`: Model predictions (for Dogs vs. Cats)
+
+**Note**: Model checkpoints (`.ckpt`, `.pth`) are excluded from the repository due to size constraints.
+
 ## Tips
 
 - If you want portable runs, save the `cfg_effective.json` that the trainer already produces — inference uses it automatically.
 - For reproducibility, set `seed` in `configs/base.yaml`.
+
+
 
 
